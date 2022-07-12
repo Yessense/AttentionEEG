@@ -74,7 +74,7 @@ class DatasetCreator():
                  dt: int = 256,
                  bci_exp_numbers=(0, 1, 2, 3, 4, 5),
                  val_exp_numbers: Optional[List[int]] = None,
-                 used_classes=(1, 2, 3)):  # , 3)):
+                 used_classes=(0, 1, 2, 3)):  # , 3)):
         if used_columns is None:
             used_columns = ['F3', 'Fz', 'F4',
                             'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6',
