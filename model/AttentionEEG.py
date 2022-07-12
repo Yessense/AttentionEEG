@@ -110,7 +110,7 @@ class AttentionEEG(pl.LightningModule):
         im_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), target_im)
 
         person_loss = self.loss_func(person_predicted, target_person)
-        person_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), target_person)
+        person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), target_person)
 
         self.log("Train Loss", im_loss)
         self.log("Person Loss", person_loss)
