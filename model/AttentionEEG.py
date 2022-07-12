@@ -132,7 +132,7 @@ class AttentionEEG(pl.LightningModule):
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
         if self.global_step % 50 == 0:
-            self.logger.logger.experiment.log({
+            self.logger.experiment.log({
                 "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im.cpu().detach().numpy(),
                                                                 preds=torch.argmax(im_predicted,
                                                                                    dim=1).cpu().detach().numpy(),
