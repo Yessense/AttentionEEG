@@ -129,7 +129,12 @@ class DatasetCreator():
             frozenset(bci_exp_numbers)) + hash(frozenset(self.used_classes))
         dataset_hash = str(dataset_hash)
 
-        path_to_dataset = os.path.join(self.path_to_dir, dataset_hash)
+        dir_name = 'saved'
+        path_to_dataset = os.path.join(self.path_to_dir, dir_name, dataset_hash)
+
+        if not os.path.exists(os.path.join(self.path_to_dir, dir_name)):
+            os.makedirs(os.path.join(self.path_to_dir, dir_name))
+
         if os.path.exists(path_to_dataset):
             return torch.load(path_to_dataset)
 
