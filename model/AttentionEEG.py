@@ -61,17 +61,24 @@ class AttentionEEG(pl.LightningModule):
         self.r_sconv1d_3 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.r_sconv1d_4 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
 
+        # FFT
         self.f_sconv1d_1 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
         self.f_sconv1d_2 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.f_sconv1d_3 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
 
-        self.im_classifier = nn.Sequential(
-            nn.Linear(self.hidden_channels * in_channels, 128),
-            nn.ReLU(), nn.Linear(128, self.n_classes), nn.Sigmoid())
+        # Activations
+        self.activation = nn.ReLU()
+        self.final_activation = nn.Sigmoid()
 
-        self.person_classifier = nn.Sequential(
-            nn.Linear(self.hidden_channels * in_channels, 128),
-            nn.ReLU(), nn.Linear(128, self.n_persons), nn.Sigmoid())
+        # Person
+        self.p_lin1 = nn.Linear(self.hidden_channels * in_channels, 128)
+        self.p_drop1 = nn.Dropout()
+        self.p_lin_class = nn.Linear(128, self.n_persons)
+
+        # IM
+        self.im_lin1 = nn.Linear(self.hidden_channels * in_channels, 64)
+        self.im_drop1 = nn.Dropout()
+        self.im_lin_class = nn.Linear(64 + self.n_persons, n_classes)
 
         self.accuracy = Accuracy()
 
@@ -87,16 +94,23 @@ class AttentionEEG(pl.LightningModule):
 
         assert raw_out.shape == fft_out.shape
 
-        raw_fft = torch.cat((raw_out, fft_out), dim=2)
+        combined = torch.cat((raw_out, fft_out), dim=2)
 
-        attention = raw_fft @ raw_fft.permute(0, 2, 1)
+        attention = combined @ combined.permute(0, 2, 1)
         attention /= math.sqrt(self.in_channels)
         softmaxes = torch.softmax(attention, dim=2)
-        out = softmaxes @ raw_fft
+
+        out = softmaxes @ combined
         out = out.view(-1, self.hidden_channels * self.in_channels)
 
-        im = self.im_classifier(out)
-        person = self.person_classifier(out)
+        person = self.p_drop1(self.activation(self.p_lin1(out)))
+        person = self.p_lin_class(person)
+
+        im = self.im_drop1(self.activation(self.im_lin1(out)))
+        im = self.im_lin_class(torch.cat((im, person), dim=1))
+
+        im = self.final_activation(im)
+        person = self.final_activation(person)
 
         return im, person
 
