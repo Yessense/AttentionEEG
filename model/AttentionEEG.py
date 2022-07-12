@@ -129,7 +129,7 @@ class AttentionEEG(pl.LightningModule):
         person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), target_person)
 
         conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), target_im)
-        conf_matrix = conf_matrix.cpu().detach().numpy()
+        conf_matrix = conf_matrix.cpu().detach().numpy() / raw_data.size(0)
         fig = px.imshow(conf_matrix, text_auto=True)
         if self.global_step % 50 == 0:
             self.logger.experiment.log({'Matrix/Confusion Matrix': fig})
