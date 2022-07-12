@@ -40,7 +40,7 @@ class AttentionEEG(pl.LightningModule):
         parser = parent_parser.add_argument_group("IMClassifier")
         parser.add_argument("--lr", type=float, default=3e-4)
         parser.add_argument("--in_channels", type=int, default=27)
-        parser.add_argument("--n_classes", type=int, default=3)
+        parser.add_argument("--n_classes", type=int, default=5)
         parser.add_argument("--n_persons", type=int, default=109)
         return parent_parser
 

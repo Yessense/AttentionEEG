@@ -39,7 +39,7 @@ args = parser.parse_args()
 # -- Dataloaders
 # --------------------------------------------------
 
-train, test = train_test_split(list(range(1, args.train_test_split_max)), test_size=0.1, random_state=42)
+train, test = train_test_split(list(range(1, args.train_test_split_max)), test_size=0.3, random_state=42)
 args.n_persons = 109
 # Train data
 dataset_creator = DatasetCreator(args.dataset_path, dt=args.dt,
