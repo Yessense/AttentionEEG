@@ -126,7 +126,7 @@ class DatasetCreator():
             bci_exp_numbers = self.bci_exp_numbers
 
         dataset_hash = hash(frozenset(session_numbers)) + hash(shift) + hash(validation) + hash(
-            frozenset(bci_exp_numbers))
+            frozenset(bci_exp_numbers)) + hash(frozenset(self.used_classes))
         dataset_hash = str(dataset_hash)
 
         path_to_dataset = os.path.join(self.path_to_dir, dataset_hash)
