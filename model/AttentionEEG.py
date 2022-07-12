@@ -2,10 +2,13 @@ import math
 from argparse import ArgumentParser
 
 import torch
+from matplotlib import pyplot as plt
+
 import wandb
 from torch import nn
 import pytorch_lightning as pl
 from torchmetrics import Accuracy, ConfusionMatrix
+import seaborn as sns
 
 
 class SConv1d(nn.Module):
@@ -41,7 +44,7 @@ class AttentionEEG(pl.LightningModule):
         parser = parent_parser.add_argument_group("IMClassifier")
         parser.add_argument("--lr", type=float, default=3e-4)
         parser.add_argument("--in_channels", type=int, default=27)
-        parser.add_argument("--n_classes", type=int, default=4)
+        parser.add_argument("--n_classes", type=int, default=3)
         parser.add_argument("--n_persons", type=int, default=109)
         return parent_parser
 
@@ -127,16 +130,17 @@ class AttentionEEG(pl.LightningModule):
         person_loss = self.loss_func(person_predicted, target_person)
         person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), target_person)
 
+        conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), target_im)
+        sns.heatmap(conf_matrix, annot=True)
+        if self.global_step % 50 == 0:
+            self.logger.experiment.log({'Confusion Matrix': plt})
+
+        # class_names = ['Rest', '1', 'Legs', '2']
+
         self.log("Train Loss", im_loss)
         self.log("Person Loss", person_loss)
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
-        if self.global_step % 50 == 0:
-            self.logger.experiment.log({
-                "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im.cpu().detach().numpy(),
-                                                                preds=torch.argmax(im_predicted,
-                                                                                   dim=1).cpu().detach().numpy(),
-                                                                class_names=['Rest', '1', 'Legs', '2'])})
 
         return im_loss + person_loss
 
