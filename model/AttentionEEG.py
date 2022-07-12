@@ -132,7 +132,7 @@ class AttentionEEG(pl.LightningModule):
         conf_matrix = conf_matrix.cpu().detach().numpy()
         fig = px.imshow(conf_matrix, text_auto=True)
         if self.global_step % 50 == 0:
-            self.logger.experiment.log({'Confusion Matrix': fig})
+            self.logger.experiment.log({'Matrix/Confusion Matrix': fig})
 
         # class_names = ['Rest', '1', 'Legs', '2']
 
