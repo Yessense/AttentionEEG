@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 from torch.utils.data import DataLoader
 
-sys.path.append("..")
+sys.path.append('..')
 from dataset.dataset import DatasetCreator, Physionet
 from model.AttentionEEG import AttentionEEG
 
