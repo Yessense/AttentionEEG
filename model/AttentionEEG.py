@@ -114,7 +114,6 @@ class AttentionEEG(pl.LightningModule):
 
         return im, person
 
-
     def training_step(self, batch):
         raw_data, fft_data, target_im, target_person = batch
 
@@ -159,13 +158,15 @@ class AttentionEEG(pl.LightningModule):
 
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return {"optimizer": optim}
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optim, max_lr=0.01, total_steps=1000)
+        return {"optimizer": optim,
+                "scheduler": scheduler}
 
 
 if __name__ == '__main__':
     raw = torch.randn((10, 27, 256))
     fft = torch.randn((10, 27, 129))
     attention = AttentionEEG(27, 128, n_persons=109, lr=0.0003, drop=0.5)
-    x1, x2 = attention.training_step((raw, fft, 1,1))
+    x1, x2 = attention.training_step((raw, fft, 1, 1))
 
     print(x1.shape)
