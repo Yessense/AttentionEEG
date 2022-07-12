@@ -131,10 +131,12 @@ class AttentionEEG(pl.LightningModule):
         self.log("Person Loss", person_loss)
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
-        self.trainer.logger.experiment.log({
-            "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im.cpu().detach().numpy(),
-                                                            preds=torch.argmax(im_predicted, dim=1).cpu().detach().numpy(),
-                                                            class_names=['Rest', '1', 'Legs', '2'])})
+        if self.global_step % 50 == 0:
+            self.trainer.logger.experiment.log({
+                "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im.cpu().detach().numpy(),
+                                                                preds=torch.argmax(im_predicted,
+                                                                                   dim=1).cpu().detach().numpy(),
+                                                                class_names=['Rest', '1', 'Legs', '2'])})
 
         return im_loss + person_loss
 
