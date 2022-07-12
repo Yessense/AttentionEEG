@@ -2,6 +2,7 @@ import math
 from argparse import ArgumentParser
 
 import torch
+import wandb
 from torch import nn
 import pytorch_lightning as pl
 from torchmetrics import Accuracy, ConfusionMatrix
@@ -131,7 +132,10 @@ class AttentionEEG(pl.LightningModule):
         self.log("Person Loss", person_loss)
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
-        self.trainer.logger.experiment.log({"Confusion Matrix": im_conf_matrix})
+        self.trainer.logger.experiment.log({
+            "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im,
+                                                            preds=torch.argmax(im_predicted, dim=1),
+                                                            class_names=['Rest', '1', 'Legs', '2'])})
 
         return im_loss + person_loss
 
