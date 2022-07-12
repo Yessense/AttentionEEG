@@ -123,7 +123,6 @@ class AttentionEEG(pl.LightningModule):
 
         im_loss = self.loss_func(im_predicted, target_im)
         im_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), target_im)
-        im_conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), target_im)
 
         person_loss = self.loss_func(person_predicted, target_person)
         person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), target_person)
@@ -133,8 +132,8 @@ class AttentionEEG(pl.LightningModule):
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
         self.trainer.logger.experiment.log({
-            "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im,
-                                                            preds=torch.argmax(im_predicted, dim=1),
+            "Confusion Matrix": wandb.plot.confusion_matrix(probs=None, y_true=target_im.cpu().detach().numpy(),
+                                                            preds=torch.argmax(im_predicted, dim=1).cpu().detach().numpy(),
                                                             class_names=['Rest', '1', 'Legs', '2'])})
 
         return im_loss + person_loss
