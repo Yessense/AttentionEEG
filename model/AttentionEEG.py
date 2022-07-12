@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import torch
 from torch import nn
 import pytorch_lightning as pl
-from torchmetrics import Accuracy
+from torchmetrics import Accuracy, ConfusionMatrix
 
 
 class SConv1d(nn.Module):
@@ -81,6 +81,7 @@ class AttentionEEG(pl.LightningModule):
         self.im_lin_class = nn.Linear(64 + self.n_persons, n_classes)
 
         self.accuracy = Accuracy()
+        self.confusion_matrix = ConfusionMatrix(num_classes=self.n_classes)
 
     def forward(self, raw, fft):
         raw_out = self.r_sconv1d_1(raw)
@@ -121,6 +122,7 @@ class AttentionEEG(pl.LightningModule):
 
         im_loss = self.loss_func(im_predicted, target_im)
         im_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), target_im)
+        im_conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), target_im)
 
         person_loss = self.loss_func(person_predicted, target_person)
         person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), target_person)
@@ -129,6 +131,7 @@ class AttentionEEG(pl.LightningModule):
         self.log("Person Loss", person_loss)
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
+        self.log("Confusion Matrix", im_conf_matrix)
 
         return im_loss + person_loss
 
