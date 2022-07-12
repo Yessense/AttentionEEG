@@ -1,9 +1,7 @@
 import math
 from argparse import ArgumentParser
-
+import plotly.express as px
 import torch
-from matplotlib import pyplot as plt
-
 import wandb
 from torch import nn
 import pytorch_lightning as pl
@@ -132,10 +130,9 @@ class AttentionEEG(pl.LightningModule):
 
         conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), target_im)
         conf_matrix = conf_matrix.cpu().detach().numpy()
-
-        sns.heatmap(conf_matrix, annot=True)
+        fig = px.imshow(conf_matrix, text_auto=True)
         if self.global_step % 50 == 0:
-            self.logger.experiment.log({'Confusion Matrix': plt})
+            self.logger.experiment.log({'Confusion Matrix': fig})
 
         # class_names = ['Rest', '1', 'Legs', '2']
 
