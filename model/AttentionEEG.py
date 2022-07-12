@@ -131,7 +131,7 @@ class AttentionEEG(pl.LightningModule):
         self.log("Person Loss", person_loss)
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
-        self.log("Confusion Matrix", im_conf_matrix)
+        self.trainer.logger.experiment.log({"Confusion Matrix": im_conf_matrix})
 
         return im_loss + person_loss
 
