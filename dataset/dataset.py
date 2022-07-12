@@ -61,6 +61,7 @@ def roll(a, b, dx=1):
     strides = a.strides[:-1] + (a.strides[-1] * dx,) + a.strides[-1:]
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
 
+
 def abs_fft(x):
     return np.abs(np.fft.rfft(x))
 
@@ -182,11 +183,10 @@ class DatasetCreator():
                 person_data.append(person)
                 fft_data.append(np.apply_along_axis(abs_fft, 2, x[final_mask]))
 
-
         print(f"Dataset is created. Time elapsed: {time.time() - start_time:0.1f} s.")
         print()
         dataset = torch.tensor(np.concatenate(channels_data, axis=0)).float(), \
-                    torch.tensor(np.concatenate(fft_data, axis=0)).float(), \
+                  torch.tensor(np.concatenate(fft_data, axis=0)).float(), \
                   torch.tensor(np.concatenate(label_data, axis=0)).long(), \
                   torch.tensor(np.concatenate(person_data, axis=0)).long()
 
