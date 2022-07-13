@@ -18,8 +18,8 @@ class SConv1d(nn.Module):
         self.depthwise = nn.Conv1d(in_filters, in_filters,
                                    kernel_size=kernel_size, groups=in_filters,
                                    stride=stride, padding=pad)
-        # self.pointwise = nn.Conv1d(in_filters, out_filters,
-        #                            kernel_size=1)
+        self.pointwise = nn.Conv1d(in_filters, out_filters,
+                                   kernel_size=1)
         layers = []
         if activ:
             layers.append(activ())
@@ -32,7 +32,7 @@ class SConv1d(nn.Module):
 
     def forward(self, x):
         x = self.depthwise(x)
-        # x = self.pointwise(x)
+        x = self.pointwise(x)
         x = self.layers(x)
         return x
 
