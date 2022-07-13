@@ -55,7 +55,7 @@ class AttentionEEG(pl.LightningModule):
         self.n_persons = n_persons
         self.n_classes = n_classes
         self.in_channels = in_channels
-        self.hidden_channels = 128
+        self.hidden_channels = 64
 
         # Raw
         self.r_sconv1d_1 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
@@ -104,8 +104,10 @@ class AttentionEEG(pl.LightningModule):
         attention = fft_out @ fft_out.permute(0, 2, 1)
         attention /= self.in_channels # math.sqrt(self.in_channels)
         softmaxes = torch.softmax(attention, dim=2)
+        # softmaxes -> (-1, 27, 27)
 
         out = softmaxes @ raw_out
+        # out -> (-1, 27, 64)
         out = out.view(-1, self.hidden_channels * self.in_channels)
 
         person = self.p_drop1(self.activation(self.p_lin1(out)))
