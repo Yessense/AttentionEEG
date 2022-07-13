@@ -100,7 +100,7 @@ class AttentionEEG(pl.LightningModule):
         combined = torch.cat((raw_out, fft_out), dim=2)
 
         attention = combined @ combined.permute(0, 2, 1)
-        attention /= math.sqrt(self.in_channels)
+        attention /= self.in_channels # math.sqrt(self.in_channels)
         softmaxes = torch.softmax(attention, dim=2)
 
         out = softmaxes @ combined

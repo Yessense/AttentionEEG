@@ -64,7 +64,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 dict_args = vars(args)
 classifier = AttentionEEG(**dict_args)
 
-wandb_logger = WandbLogger(project='eeg_attention', log_model=True)
+wandb_logger = WandbLogger(project='eeg_attention', log_model=False)
 
 monitor = 'Val Loss/dataloader_idx_0'
 profiler = None
