@@ -9,6 +9,7 @@ from torchmetrics import Accuracy, ConfusionMatrix
 import seaborn as sns
 
 
+
 class SConv1d(nn.Module):
     def __init__(self, in_filters, out_filters, kernel_size,
                  stride=1, pad=0,
@@ -77,6 +78,7 @@ class AttentionEEG(pl.LightningModule):
 
         # temporal convs
         self.t_conv = nn.Conv1d(in_channels, self.temporal_convs, kernel_size=self.hidden_channels)
+        self.t_bn = nn.BatchNorm1d(self.temporal_convs)
 
         # Person
         self.p_lin1 = nn.Linear(self.temporal_convs, 128)
@@ -114,7 +116,10 @@ class AttentionEEG(pl.LightningModule):
         out = softmaxes @ raw_out
         # out -> (-1, 27, 64)
         out = self.t_conv(out)
+        # out -> (-1, 128, 1)
         out = out.view(-1, self.temporal_convs)
+        # out -> (-1, 128)
+        out = self.t_bn
 
         person = self.p_drop1(self.activation(self.p_lin1(out)))
         person = self.p_lin_class(person)
