@@ -56,6 +56,8 @@ class AttentionEEG(pl.LightningModule):
         self.n_classes = n_classes
         self.in_channels = in_channels
         self.hidden_channels = 64
+        self.temporal_convs = 128
+
 
         # Raw
         self.r_sconv1d_1 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
@@ -73,13 +75,16 @@ class AttentionEEG(pl.LightningModule):
         self.activation = nn.ReLU()
         self.final_activation = nn.Sigmoid()
 
+        # temporal convs
+        self.t_conv = nn.Conv1d(in_channels, self.temporal_convs, kernel_size=self.hidden_channels)
+
         # Person
-        self.p_lin1 = nn.Linear(self.hidden_channels * in_channels, 128)
+        self.p_lin1 = nn.Linear(self.temporal_convs, 128)
         self.p_drop1 = nn.Dropout()
         self.p_lin_class = nn.Linear(128, self.n_persons)
 
         # IM
-        self.im_lin1 = nn.Linear(self.hidden_channels * in_channels, 64)
+        self.im_lin1 = nn.Linear(self.temporal_convs, 64)
         self.im_drop1 = nn.Dropout()
         self.im_lin_class = nn.Linear(64 + self.n_persons, n_classes)
 
@@ -108,7 +113,8 @@ class AttentionEEG(pl.LightningModule):
 
         out = softmaxes @ raw_out
         # out -> (-1, 27, 64)
-        out = out.view(-1, self.hidden_channels * self.in_channels)
+        out = self.t_conv(out)
+        out = out.view(-1, self.temporal_convs)
 
         person = self.p_drop1(self.activation(self.p_lin1(out)))
         person = self.p_lin_class(person)
