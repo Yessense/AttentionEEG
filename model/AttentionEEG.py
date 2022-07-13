@@ -119,7 +119,7 @@ class AttentionEEG(pl.LightningModule):
         # out -> (-1, 128, 1)
         out = out.view(-1, self.temporal_convs)
         # out -> (-1, 128)
-        out = self.t_bn
+        out = self.t_bn(out)
 
         person = self.p_drop1(self.activation(self.p_lin1(out)))
         person = self.p_lin_class(person)
