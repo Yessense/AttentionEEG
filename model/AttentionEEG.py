@@ -9,7 +9,6 @@ from torchmetrics import Accuracy, ConfusionMatrix
 import seaborn as sns
 
 
-
 class SConv1d(nn.Module):
     def __init__(self, in_filters, out_filters, kernel_size,
                  stride=1, pad=0,
@@ -59,7 +58,6 @@ class AttentionEEG(pl.LightningModule):
         self.hidden_channels = 64
         self.temporal_convs = 128
 
-
         # Raw
         self.r_sconv1d_1 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.r_sconv1d_2 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
@@ -80,6 +78,10 @@ class AttentionEEG(pl.LightningModule):
         self.t_conv = nn.Conv1d(in_channels, self.temporal_convs, kernel_size=self.hidden_channels)
         self.t_bn = nn.BatchNorm1d(self.temporal_convs)
 
+        # temporal convs
+        self.fft_t_conv = nn.Conv1d(in_channels, self.temporal_convs, kernel_size=32)
+        self.fft_t_bn = nn.BatchNorm1d(self.temporal_convs)
+
         # Person
         self.p_lin1 = nn.Linear(self.temporal_convs, 128)
         self.p_drop1 = nn.Dropout()
@@ -88,7 +90,7 @@ class AttentionEEG(pl.LightningModule):
         # IM
         self.im_lin1 = nn.Linear(self.temporal_convs, 64)
         self.im_drop1 = nn.Dropout()
-        self.im_lin_class = nn.Linear(64 + self.n_persons, n_classes)
+        self.im_lin_class = nn.Linear(64, n_classes)
 
         self.accuracy = Accuracy()
         self.confusion_matrix = ConfusionMatrix(num_classes=self.n_classes)
@@ -107,32 +109,43 @@ class AttentionEEG(pl.LightningModule):
         fft_out = self.f_sconv1d_3(fft_out)
         fft_out = self.f_sconv1d_4(fft_out)
         # fft_out -> (-1, 27, 32)
-        combined = torch.cat((raw_out, fft_out), dim=2)
 
-
-        attention = combined @ combined.permute(0, 2, 1)
-        attention /= self.in_channels # math.sqrt(self.in_channels)
-        softmaxes = torch.softmax(attention, dim=2)
+        raw_attention = raw_out @ raw_out.permute(0, 2, 1)
+        raw_attention /= self.in_channels  # math.sqrt(self.in_channels)
+        softmaxes = torch.softmax(raw_attention, dim=2)
         # softmaxes -> (-1, 27, 27)
 
-        out = softmaxes @ raw_out
+        raw_out = softmaxes @ raw_out
         # out -> (-1, 27, 64)
-        out = self.t_conv(out)
+        raw_out = self.t_conv(raw_out)
         # out -> (-1, 128, 1)
-        out = out.view(-1, self.temporal_convs)
+        raw_out = raw_out.view(-1, self.temporal_convs)
         # out -> (-1, 128)
-        out = self.t_bn(out)
+        raw_out = self.t_bn(raw_out)
 
-        person = self.p_drop1(self.activation(self.p_lin1(out)))
+        fft_attention = fft_out @ fft_out.permute(0, 2, 1)
+        fft_attention /= self.in_channels  # math.sqrt(self.in_channels)
+        fft_softmax = torch.softmax(fft_attention, dim=2)
+        # softmaxes -> (-1, 27, 27)
+
+        fft_out = fft_softmax @ fft_out
+        # out -> (-1, 27, 64)
+        fft_out = self.t_conv(fft_out)
+        # out -> (-1, 128, 1)
+        fft_out = fft_out.view(-1, self.temporal_convs)
+        # out -> (-1, 128)
+        fft_out = self.t_bn(fft_out)
+
+        person = self.p_drop1(self.activation(self.p_lin1(fft_out)))
         person = self.p_lin_class(person)
 
-        im = self.im_drop1(self.activation(self.im_lin1(out)))
-        im = self.im_lin_class(torch.cat((im, person), dim=1))
+        raw_out = self.im_drop1(self.activation(self.im_lin1(raw_out)))
+        raw_out = self.im_lin_class(raw_out)
 
-        im = self.final_activation(im)
+        raw_out = self.final_activation(raw_out)
         person = self.final_activation(person)
 
-        return im, person
+        return raw_out, person
 
     def training_step(self, batch):
         raw_data, fft_data, target_im, target_person = batch
@@ -158,7 +171,7 @@ class AttentionEEG(pl.LightningModule):
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
 
-        return im_loss + 1/20 * person_loss
+        return im_loss + 1 / 20 * person_loss
 
     def loss_func(self, y_pred, y_true):
         loss = nn.CrossEntropyLoss()
