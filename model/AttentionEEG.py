@@ -17,8 +17,8 @@ class SConv1d(nn.Module):
         self.depthwise = nn.Conv1d(in_filters, in_filters,
                                    kernel_size=kernel_size, groups=in_filters,
                                    stride=stride, padding=pad)
-        self.pointwise = nn.Conv1d(in_filters, out_filters,
-                                   kernel_size=1)
+        # self.pointwise = nn.Conv1d(in_filters, out_filters,
+        #                            kernel_size=1)
         layers = []
         if activ:
             layers.append(activ())
@@ -31,7 +31,7 @@ class SConv1d(nn.Module):
 
     def forward(self, x):
         x = self.depthwise(x)
-        x = self.pointwise(x)
+        # x = self.pointwise(x)
         x = self.layers(x)
         return x
 
@@ -67,6 +67,7 @@ class AttentionEEG(pl.LightningModule):
         self.f_sconv1d_1 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
         self.f_sconv1d_2 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.f_sconv1d_3 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
+        self.f_sconv1d_4 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
         # Activations
         self.activation = nn.ReLU()
@@ -86,24 +87,25 @@ class AttentionEEG(pl.LightningModule):
         self.confusion_matrix = ConfusionMatrix(num_classes=self.n_classes)
 
     def forward(self, raw, fft):
+        # Raw
         raw_out = self.r_sconv1d_1(raw)
         raw_out = self.r_sconv1d_2(raw_out)
         raw_out = self.r_sconv1d_3(raw_out)
         raw_out = self.r_sconv1d_4(raw_out)
+        # raw_out -> (-1, 27, 64)
 
+        # fft
         fft_out = self.f_sconv1d_1(fft)
         fft_out = self.f_sconv1d_2(fft_out)
         fft_out = self.f_sconv1d_3(fft_out)
+        fft_out = self.f_sconv1d_4(fft_out)
+        # fft_out -> (-1, 27, 32)
 
-        assert raw_out.shape == fft_out.shape
-
-        combined = torch.cat((raw_out, fft_out), dim=2)
-
-        attention = combined @ combined.permute(0, 2, 1)
+        attention = fft_out @ fft_out.permute(0, 2, 1)
         attention /= self.in_channels # math.sqrt(self.in_channels)
         softmaxes = torch.softmax(attention, dim=2)
 
-        out = softmaxes @ combined
+        out = softmaxes @ raw_out
         out = out.view(-1, self.hidden_channels * self.in_channels)
 
         person = self.p_drop1(self.activation(self.p_lin1(out)))
@@ -129,7 +131,7 @@ class AttentionEEG(pl.LightningModule):
         person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), target_person)
 
         conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), target_im)
-        conf_matrix = conf_matrix.cpu().detach().numpy() / raw_data.size(0)
+        conf_matrix = conf_matrix.cpu().detach().numpy()
         fig = px.imshow(conf_matrix, text_auto=True)
         if self.global_step % 50 == 0:
             self.logger.experiment.log({'Matrix/Confusion Matrix': fig})
@@ -156,7 +158,7 @@ class AttentionEEG(pl.LightningModule):
         accuracy = self.accuracy(im_predicted, im_target)
 
         conf_matrix = self.confusion_matrix(torch.argmax(im_predicted, dim=1), im_target)
-        conf_matrix = conf_matrix.cpu().detach().numpy() / raw_data.size(0)
+        conf_matrix = conf_matrix.cpu().detach().numpy()
         fig = px.imshow(conf_matrix, text_auto=True)
 
         if dataloader_idx == 0:
