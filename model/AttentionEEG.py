@@ -166,13 +166,13 @@ class AttentionEEG(pl.LightningModule):
             person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), person_target)
             self.log("Person Loss", person_loss)
             self.log("Person Accuracy", person_accuracy)
-            if self.idx % 50 == 0:
+            if idx % 50 == 0:
                 self.logger.experiment.log({'Matrix/Val Confusion Matrix': fig})
 
         if dataloader_idx == 1:
             self.log("Test Loss", loss)
             self.log("Test Accuracy", accuracy, prog_bar=True)
-            if self.idx % 50 == 0:
+            if idx % 50 == 0:
                 self.logger.experiment.log({'Matrix/Test Confusion Matrix': fig})
 
     def configure_optimizers(self):
