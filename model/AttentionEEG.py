@@ -130,11 +130,11 @@ class AttentionEEG(pl.LightningModule):
 
         fft_out = fft_softmax @ fft_out
         # out -> (-1, 27, 64)
-        fft_out = self.t_conv(fft_out)
+        fft_out = self.fft_t_conv(fft_out)
         # out -> (-1, 128, 1)
         fft_out = fft_out.view(-1, self.temporal_convs)
         # out -> (-1, 128)
-        fft_out = self.t_bn(fft_out)
+        fft_out = self.fft_t_bn(fft_out)
 
         person = self.p_drop1(self.activation(self.p_lin1(fft_out)))
         person = self.p_lin_class(person)
