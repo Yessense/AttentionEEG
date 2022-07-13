@@ -141,7 +141,7 @@ class AttentionEEG(pl.LightningModule):
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
         self.log("Person Accuracy", person_accuracy)
 
-        return im_loss + person_loss
+        return im_loss + 1/20 * person_loss
 
     def loss_func(self, y_pred, y_true):
         loss = nn.CrossEntropyLoss()
