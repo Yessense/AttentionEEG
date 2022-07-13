@@ -43,7 +43,7 @@ good_persons = [103, 33, 89, 1, 73, 25, 42, 57, 8, 61, 56, 78, 108, 30, 34, 94, 
 mediocre_persons = [101, 32, 68, 35, 20, 74, 90, 19, 46, 26, 104, 58, 4]
 
 train, test = train_test_split(list(range(1, args.train_test_split_max)), test_size=0.3, random_state=42)
-train = [i for i in train if i in very_good_persons + good_persons]
+# train = [i for i in train if i in very_good_persons + good_persons]
 args.n_persons = 109
 # Train data
 dataset_creator = DatasetCreator(args.dataset_path, dt=args.dt,
