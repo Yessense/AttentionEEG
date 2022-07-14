@@ -66,7 +66,7 @@ class AttentionEEG(pl.LightningModule):
         self.r_sconv1d_5 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
         hidden_aspp = 4
-        self.r_aspp_1 = nn.Conv2d(1, hidden_aspp, kernel_size=1, dilation=0)
+        self.r_aspp_1 = nn.Conv2d(1, hidden_aspp, kernel_size=1)
         self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 4), padding=4)
         self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 8), padding=8)
         self.r_aspp_4 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(12, 12), padding=12)
