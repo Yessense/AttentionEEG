@@ -135,6 +135,7 @@ class AttentionEEG(pl.LightningModule):
 
         # class_names = ['Rest', '1', 'Legs', '2']
 
+        self.log("global_step", self.global_step)
         self.log("Train Loss", im_loss)
         self.log("Train Accuracy", im_accuracy, prog_bar=True)
 
