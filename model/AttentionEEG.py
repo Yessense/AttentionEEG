@@ -55,33 +55,25 @@ class AttentionEEG(pl.LightningModule):
         self.n_persons = n_persons
         self.n_classes = n_classes
         self.in_channels = in_channels
-        self.hidden_channels = 32
-        self.temporal_convs = 64
+        self.hidden_channels = 64
+        self.temporal_convs = 256
 
         # Raw
-        self.r_sconv1d_1 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
-        self.r_sconv1d_2 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
-        self.r_sconv1d_3 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
-        self.r_sconv1d_4 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
+        self.r_sconv1d_1 = SConv1d(in_channels, 32, 8, 2, 3, bn=True, drop=drop)
+        self.r_sconv1d_2 = SConv1d(32, 64, 3, 1, 1, bn=True, drop=drop)
+        self.r_sconv1d_3 = SConv1d(64, 128, 8, 2, 3, bn=True, drop=drop)
+        self.r_sconv1d_4 = SConv1d(128, 256, 3, 1, 1, bn=True, drop=drop)
         # self.r_sconv1d_5 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
-        hidden_aspp = 4
-        self.r_aspp_1 = nn.Conv2d(1, hidden_aspp, kernel_size=1)
-        self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 8), padding=(4, 8))
-        self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 16), padding=(8, 16))
-        self.r_aspp_4 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(12, 24), padding=(12, 24))
+        # temporal convs
+        self.t_conv = nn.Conv1d(256, self.temporal_convs, kernel_size=self.hidden_channels)
+        self.t_bn = nn.BatchNorm1d(self.temporal_convs)
+        self.t_dropout_1 = nn.Dropout()
 
-        # concat -> (-1, 16, 27, 32)
-        self.r_concat_conv = nn.Conv2d(hidden_aspp * 4, 1, kernel_size=1)
-
-        # concat -> (-1, 1, 27, 32)
-        self.r_bn = nn.BatchNorm2d(1)
-
-        # IM
-        # flatten -> (-1, 27 * 32)
-        self.im_lin1 = nn.Linear(self.in_channels * self.temporal_convs, 64)
-        self.im_drop1 = nn.Dropout()
-        self.im_lin_class = nn.Linear(64, n_classes)
+        # classifier
+        self.r_linear_1 = nn.Linear(self.temporal_convs, 64)
+        self.r_dropout_1 = nn.Dropout()
+        self.r_linear_classificator = nn.Linear(64, n_classes)
 
         self.accuracy = Accuracy()
         self.confusion_matrix = ConfusionMatrix(num_classes=self.n_classes)
@@ -91,7 +83,9 @@ class AttentionEEG(pl.LightningModule):
         self.final_activation = nn.Sigmoid()
 
     def forward(self, raw):
-        # Raw
+        # ----------------------------------------
+        # Convs
+        # ----------------------------------------
         raw_out = self.r_sconv1d_1(raw)
         raw_out = self.r_sconv1d_2(raw_out)
         raw_out = self.r_sconv1d_3(raw_out)
@@ -101,36 +95,27 @@ class AttentionEEG(pl.LightningModule):
         # raw_out = self.r_sconv1d_5(raw_out)
         # raw_out -> (-1, 27, 32)
 
+        # ----------------------------------------
+        # Attention
+        # ----------------------------------------
         raw_attention = raw_out @ raw_out.permute(0, 2, 1)
         raw_attention /= self.in_channels  # math.sqrt(self.in_channels)
         softmaxes = torch.softmax(raw_attention, dim=2)
-
-        # softmaxes -> (-1, 27, 27)
-
         raw_out = softmaxes @ raw_out
         # out -> (-1, 27, 32)
 
-        raw_out = raw_out.unsqueeze(1)
-        # out -> (-1, 1, 27, 32)
+        # ----------------------------------------
+        # Temporal spatial convolution
+        # ----------------------------------------
+        raw_out = self.t_conv(raw_out)
+        raw_out = raw_out.view(-1, self.temporal_convs)
+        raw_out = self.t_dropout_1(self.t_bn(self.activation(raw_out)))
 
-        raw_aspp1 = self.r_aspp_1(raw_out)
-        raw_aspp2 = self.r_aspp_2(raw_out)
-        raw_aspp3 = self.r_aspp_3(raw_out)
-        raw_aspp4 = self.r_aspp_4(raw_out)
-        # raw_aspp -> (-1, 4, 27, 32)
-
-        raw_out = torch.concat((raw_aspp1, raw_aspp2, raw_aspp3, raw_aspp4), dim=1)
-        # raw_out -> (-1, 16, 27, 32)
-
-        raw_out = self.r_concat_conv(raw_out)
-        raw_out = self.r_bn(raw_out)
-        # raw_out -> (-1, 1, 27, 32)
-
-        # out -> (-1, 32 * 27)
-        raw_out = raw_out.view(-1, self.temporal_convs * self.in_channels)
-        raw_out = self.im_drop1(self.activation(self.im_lin1(raw_out)))
-        raw_out = self.im_lin_class(raw_out)
-        raw_out = self.final_activation(raw_out)
+        # ----------------------------------------
+        # Classifier
+        # ----------------------------------------
+        raw_out = self.r_dropout_1(self.activation(self.r_linear_1(raw_out)))
+        raw_out = self.final_activation(self.r_linear_classificator(raw_out))
 
         return raw_out
 
