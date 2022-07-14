@@ -56,20 +56,20 @@ class AttentionEEG(pl.LightningModule):
         self.n_classes = n_classes
         self.in_channels = in_channels
         self.hidden_channels = 32
-        self.temporal_convs = 32
+        self.temporal_convs = 64
 
         # Raw
         self.r_sconv1d_1 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.r_sconv1d_2 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
         self.r_sconv1d_3 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.r_sconv1d_4 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
-        self.r_sconv1d_5 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
+        # self.r_sconv1d_5 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
         hidden_aspp = 4
         self.r_aspp_1 = nn.Conv2d(1, hidden_aspp, kernel_size=1)
-        self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 4), padding=4)
-        self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 8), padding=8)
-        self.r_aspp_4 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(12, 12), padding=12)
+        self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 8), padding=(4, 8))
+        self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 16), padding=(8, 16))
+        self.r_aspp_4 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(12, 24), padding=(12, 24))
 
         # concat -> (-1, 16, 27, 32)
         self.r_concat_conv = nn.Conv2d(hidden_aspp * 4, 1, kernel_size=1)
@@ -79,7 +79,7 @@ class AttentionEEG(pl.LightningModule):
 
         # IM
         # flatten -> (-1, 27 * 32)
-        self.im_lin1 = nn.Linear(27 * 32, 64)
+        self.im_lin1 = nn.Linear(self.in_channels * self.temporal_convs, 64)
         self.im_drop1 = nn.Dropout()
         self.im_lin_class = nn.Linear(64, n_classes)
 
@@ -96,7 +96,9 @@ class AttentionEEG(pl.LightningModule):
         raw_out = self.r_sconv1d_2(raw_out)
         raw_out = self.r_sconv1d_3(raw_out)
         raw_out = self.r_sconv1d_4(raw_out)
-        raw_out = self.r_sconv1d_5(raw_out)
+        # raw_out -> (-1, 27, 64)
+
+        # raw_out = self.r_sconv1d_5(raw_out)
         # raw_out -> (-1, 27, 32)
 
         raw_attention = raw_out @ raw_out.permute(0, 2, 1)
@@ -125,7 +127,7 @@ class AttentionEEG(pl.LightningModule):
         # raw_out -> (-1, 1, 27, 32)
 
         # out -> (-1, 32 * 27)
-        raw_out = raw_out.view(-1, 32 * self.in_channels)
+        raw_out = raw_out.view(-1, self.temporal_convs * self.in_channels)
         raw_out = self.im_drop1(self.activation(self.im_lin1(raw_out)))
         raw_out = self.im_lin_class(raw_out)
         raw_out = self.final_activation(raw_out)
