@@ -80,7 +80,9 @@ else:
 
 # checkpoint
 save_top_k = 2
-checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
+checkpoint_callback = ModelCheckpoint(save_top_k=save_top_k, monitor=monitor, mode="min")
+checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="Test Loss/dataloader_idx_1", mode="min")
+checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="global_step", mode="max")
 
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
