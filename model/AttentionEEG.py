@@ -65,13 +65,22 @@ class AttentionEEG(pl.LightningModule):
         self.r_sconv1d_4 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
         self.r_sconv1d_5 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
+        hidden_aspp = 4
+        self.r_aspp_1 = nn.Conv2d(1, hidden_aspp, kernel_size=1, dilation=0)
+        self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 4), padding=5)
+        self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 8), padding=9)
+        self.r_aspp_4 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(12, 12), padding=12)
 
-        # temporal convs
-        self.t_conv = nn.Conv1d(in_channels, self.temporal_convs, kernel_size=self.hidden_channels)
-        self.t_bn = nn.BatchNorm1d(self.temporal_convs)
+        # concat -> (-1, 16, 27, 32)
+        self.r_concat_conv = nn.Conv2d(hidden_aspp * 4, 1, kernel_size=1)
+
+        # concat -> (-1, 1, 27, 32)
+        self.r_bn = nn.BatchNorm2d(1)
+
 
         # IM
-        self.im_lin1 = nn.Linear(self.temporal_convs, 64)
+        # flatten -> (-1, 27 * 32)
+        self.im_lin1 = nn.Linear(27 * 32, 64)
         self.im_drop1 = nn.Dropout()
         self.im_lin_class = nn.Linear(64, n_classes)
 
@@ -99,17 +108,28 @@ class AttentionEEG(pl.LightningModule):
 
         raw_out = softmaxes @ raw_out
         # out -> (-1, 27, 32)
-        raw_out = self.t_conv(raw_out)
-        # out -> (-1, 128, 1)
-        raw_out = raw_out.view(-1, self.temporal_convs)
-        # out -> (-1, 128)
-        raw_out = self.t_bn(raw_out)
 
+        raw_out = raw_out.unsqueeze(1)
+        # out -> (-1, 1, 27, 32)
+
+        raw_aspp1 = self.r_aspp_1(raw_out)
+        raw_aspp2 = self.r_aspp_2(raw_out)
+        raw_aspp3 = self.r_aspp_3(raw_out)
+        raw_aspp4 = self.r_aspp_4(raw_out)
+        # raw_aspp -> (-1, 4, 27, 32)
+
+        raw_out = torch.concat((raw_aspp1, raw_aspp2, raw_aspp3, raw_aspp4), dim=1)
+        # raw_out -> (-1, 16, 27, 32)
+
+        raw_out = self.r_concat_conv(raw_out)
+        raw_out = self.r_bn(raw_out)
+        # raw_out -> (-1, 1, 27, 32)
+
+        # out -> (-1, 32 * 27)
+        raw_out = raw_out.view(-1, 32 * self.in_channels)
         raw_out = self.im_drop1(self.activation(self.im_lin1(raw_out)))
         raw_out = self.im_lin_class(raw_out)
-
         raw_out = self.final_activation(raw_out)
-        # person = self.final_activation(person)
 
         return raw_out
 
