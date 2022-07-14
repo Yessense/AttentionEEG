@@ -80,13 +80,13 @@ else:
 
 # checkpoint
 save_top_k = 2
-checkpoint_callback = ModelCheckpoint(save_top_k=save_top_k, monitor=monitor, mode="min")
-checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="Test Loss/dataloader_idx_1", mode="min")
-checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="global_step", mode="max")
+checkpoint_callback1 = ModelCheckpoint(save_top_k=save_top_k, monitor=monitor, mode="min")
+checkpoint_callback2 = ModelCheckpoint(save_top_k=2, monitor="Test Loss/dataloader_idx_1", mode="min")
+checkpoint_callback3 = ModelCheckpoint(save_top_k=2, monitor="global_step", mode="max")
 
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
-                     callbacks=[checkpoint_callback],
+                     callbacks=[checkpoint_callback1, checkpoint_callback2, checkpoint_callback3],
                      logger=wandb_logger,
                      profiler=profiler,
                      log_every_n_steps=20)
