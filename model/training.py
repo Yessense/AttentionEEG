@@ -84,6 +84,7 @@ checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
 
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
+                     callbacks=[checkpoint_callback],
                      logger=wandb_logger,
                      profiler=profiler,
                      log_every_n_steps=20)
