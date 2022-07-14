@@ -67,8 +67,8 @@ class AttentionEEG(pl.LightningModule):
 
         hidden_aspp = 4
         self.r_aspp_1 = nn.Conv2d(1, hidden_aspp, kernel_size=1, dilation=0)
-        self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 4), padding=5)
-        self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 8), padding=9)
+        self.r_aspp_2 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(4, 4), padding=4)
+        self.r_aspp_3 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(8, 8), padding=8)
         self.r_aspp_4 = nn.Conv2d(1, hidden_aspp, kernel_size=3, dilation=(12, 12), padding=12)
 
         # concat -> (-1, 16, 27, 32)
@@ -76,7 +76,6 @@ class AttentionEEG(pl.LightningModule):
 
         # concat -> (-1, 1, 27, 32)
         self.r_bn = nn.BatchNorm2d(1)
-
 
         # IM
         # flatten -> (-1, 27 * 32)
@@ -192,7 +191,7 @@ class AttentionEEG(pl.LightningModule):
 if __name__ == '__main__':
     raw = torch.randn((10, 27, 256))
     fft = torch.randn((10, 27, 129))
-    attention = AttentionEEG(27, 128, n_persons=109, lr=0.0003, drop=0.5)
-    x1, x2 = attention.training_step((raw, fft, 1, 1))
+    attention = AttentionEEG(27, 3, n_persons=109, lr=0.0003, drop=0.5)
+    x1, x2 = attention.training_step((raw, fft, torch.ones(10).long(), 1))
 
     print(x1.shape)
