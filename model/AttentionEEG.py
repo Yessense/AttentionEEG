@@ -55,20 +55,16 @@ class AttentionEEG(pl.LightningModule):
         self.n_persons = n_persons
         self.n_classes = n_classes
         self.in_channels = in_channels
-        self.hidden_channels = 64
-        self.temporal_convs = 128
+        self.hidden_channels = 32
+        self.temporal_convs = 32
 
         # Raw
         self.r_sconv1d_1 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.r_sconv1d_2 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
         self.r_sconv1d_3 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
         self.r_sconv1d_4 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
+        self.r_sconv1d_5 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
-        # FFT
-        self.f_sconv1d_1 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
-        self.f_sconv1d_2 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
-        self.f_sconv1d_3 = SConv1d(in_channels, in_channels, 3, 1, 1, bn=True, drop=drop)
-        self.f_sconv1d_4 = SConv1d(in_channels, in_channels, 8, 2, 3, bn=True, drop=drop)
 
         # temporal convs
         self.t_conv = nn.Conv1d(in_channels, self.temporal_convs, kernel_size=self.hidden_channels)
@@ -92,7 +88,8 @@ class AttentionEEG(pl.LightningModule):
         raw_out = self.r_sconv1d_2(raw_out)
         raw_out = self.r_sconv1d_3(raw_out)
         raw_out = self.r_sconv1d_4(raw_out)
-        # raw_out -> (-1, 27, 64)
+        raw_out = self.r_sconv1d_5(raw_out)
+        # raw_out -> (-1, 27, 32)
 
         raw_attention = raw_out @ raw_out.permute(0, 2, 1)
         raw_attention /= self.in_channels  # math.sqrt(self.in_channels)
@@ -101,7 +98,7 @@ class AttentionEEG(pl.LightningModule):
         # softmaxes -> (-1, 27, 27)
 
         raw_out = softmaxes @ raw_out
-        # out -> (-1, 27, 64)
+        # out -> (-1, 27, 32)
         raw_out = self.t_conv(raw_out)
         # out -> (-1, 128, 1)
         raw_out = raw_out.view(-1, self.temporal_convs)
