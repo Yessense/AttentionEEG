@@ -27,7 +27,7 @@ experiment_parser.add_argument("--dt", type=int, default=256)
 experiment_parser.add_argument("--ckpt_path", type=str,
                                default='/home/akorchemnyi/AttentionEEG/None/version_None/checkpoints/epoch=4632-step=101925.ckpt')
 
-experiment_parser.add_argument("--batch_size", type=int, default=64)
+experiment_parser.add_argument("--batch_size", type=int, default=3)
 experiment_parser.add_argument("--train_test_split_max", type=int, default=4)
 
 parser = AttentionEEG.add_model_specific_args(parent_parser=parser)
@@ -45,7 +45,7 @@ train_dataset = Physionet(*dataset_creator.create_dataset(test_person, args.shif
 validation_dataset = Physionet(*dataset_creator.create_dataset(test_person, args.shift, validation=False))
 
 train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+validation_dataloader = DataLoader(validation_dataset, batch_size=args.batch_size)
 
 dict_args = vars(args)
 classifier = AttentionEEG(**dict_args)
