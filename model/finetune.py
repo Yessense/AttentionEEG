@@ -66,4 +66,4 @@ trainer = pl.Trainer(gpus=gpus,
                      profiler=profiler,
                      log_every_n_steps=1)
 trainer.fit(model=classifier, ckpt_path=args.ckpt_path, train_dataloaders=train_dataloader,
-            val_dataloaders=[validation_dataloader])
+            val_dataloaders=[validation_dataloader, validation_dataloader])
