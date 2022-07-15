@@ -61,7 +61,7 @@ else:
     gpus = None
 
 trainer = pl.Trainer(gpus=gpus,
-                     max_epochs=10,
+                     max_epochs=args.max_epochs,
                      logger=wandb_logger,
                      profiler=profiler,
                      log_every_n_steps=1)
