@@ -47,6 +47,9 @@ validation_dataset = Physionet(*dataset_creator.create_dataset(test_person, args
 train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 validation_dataloader = DataLoader(validation_dataset, batch_size=args.batch_size)
 
+dict_args = vars(args)
+classifier = AttentionEEG(**dict_args).load_from_checkpoint(args.ckpt_path)
+
 wandb_logger = WandbLogger(project='eeg_finetune', log_model=False)
 
 monitor = 'Val Loss/dataloader_idx_0'
@@ -56,13 +59,11 @@ if args.gpus is not None:
     gpus = [args.gpus]
 else:
     gpus = None
-
-classifier = AttentionEEG.load_from_checkpoint(args.ckpt_path)
-
+classifier = AttentionEEG
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
                      logger=wandb_logger,
                      profiler=profiler,
                      log_every_n_steps=1)
-trainer.fit(model=classifier, train_dataloaders=train_dataloader,
+trainer.fit(model=classifier,  train_dataloaders=train_dataloader,
             val_dataloaders=[validation_dataloader, validation_dataloader])
