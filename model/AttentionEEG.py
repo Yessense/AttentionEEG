@@ -171,7 +171,7 @@ class AttentionEEG(pl.LightningModule):
                 self.logger.experiment.log({'Matrix/Test Confusion Matrix': fig})
 
     def configure_optimizers(self):
-        optim = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
+        optim = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optim, max_lr=0.01, total_steps=4000 * 5)
         return {"optimizer": optim,
                 "scheduler": scheduler}
