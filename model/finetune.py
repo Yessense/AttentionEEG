@@ -65,4 +65,5 @@ trainer = pl.Trainer(gpus=gpus,
                      logger=wandb_logger,
                      profiler=profiler,
                      log_every_n_steps=1)
-trainer.fit(model=classifier, ckpt_path=args.ckpt_path)
+trainer.fit(model=classifier, ckpt_path=args.ckpt_path, train_dataloaders=train_dataloader,
+            val_dataloaders=[validation_dataloader])
