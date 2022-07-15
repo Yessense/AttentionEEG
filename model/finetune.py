@@ -59,7 +59,6 @@ if args.gpus is not None:
     gpus = [args.gpus]
 else:
     gpus = None
-classifier = AttentionEEG
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
                      logger=wandb_logger,
